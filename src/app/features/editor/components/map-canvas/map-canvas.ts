@@ -8,6 +8,7 @@ import {
   afterNextRender
 } from '@angular/core';
 
+import { createConceptMapExample } from '../../../../diagram-types/concept-map/concept-map.plugin';
 import { MatButtonModule } from '@angular/material/button';
 import { GraphEngine } from '../../services/graph-engine';
 
@@ -29,6 +30,7 @@ export class MapCanvas implements OnDestroy {
   private canvas!: ElementRef<HTMLDivElement>;
 
   readonly engine = inject(GraphEngine);
+  readonly example = createConceptMapExample();
 
 constructor() {
   afterNextRender(() => {
@@ -43,122 +45,28 @@ constructor() {
 }
 
   private createInitialMap(): void {
-
     const graph = this.engine.getGraph();
-
-    graph.addNode({
-      id: 'concept-1',
-      shape: 'rect',
-      x: 300,
-      y: 80,
-      width: 240,
-      height: 55,
-      label: 'Gestão do conhecimento',
-
-      attrs: {
-        body: {
-          fill: '#dbeafe',
-          stroke: '#2563eb',
-          strokeWidth: 1.5,
-          rx: 8,
-          ry: 8
+    for (const node of this.example.nodes) {
+      const phrase = node.type === 'linking_phrase';
+      graph.addNode({
+        id: node.id, shape: 'rect', ...node.position, ...node.size,
+        label: node.label,
+        attrs: {
+          body: { fill: phrase ? 'transparent' : '#dbeafe', stroke: phrase ? 'none' : '#2563eb', rx: 8, ry: 8 },
+          label: { fill: '#1e293b', fontSize: 14 }
         },
-        label: {
-          fill: '#1e3a8a',
-          fontSize: 14,
-          fontWeight: 600
-        }
-      },
-
-      data: {
-        type: 'concept'
-      }
-    });
-
-    graph.addNode({
-      id: 'phrase-1',
-      shape: 'rect',
-      x: 370,
-      y: 190,
-      width: 100,
-      height: 30,
-      label: 'organiza',
-
-      attrs: {
-        body: {
-          fill: 'transparent',
-          stroke: 'none'
-        },
-        label: {
-          fill: '#475569',
-          fontSize: 13
-        }
-      },
-
-      data: {
-        type: 'linking_phrase'
-      }
-    });
-
-    graph.addNode({
-      id: 'concept-2',
-      shape: 'rect',
-      x: 320,
-      y: 280,
-      width: 200,
-      height: 55,
-      label: 'Informações',
-
-      attrs: {
-        body: {
-          fill: '#ccfbf1',
-          stroke: '#0d9488',
-          strokeWidth: 1.5,
-          rx: 8,
-          ry: 8
-        },
-        label: {
-          fill: '#115e59',
-          fontSize: 14
-        }
-      },
-
-      data: {
-        type: 'concept'
-      }
-    });
-
-    graph.addEdge({
-      id: 'edge-1',
-      source: 'concept-1',
-      target: 'phrase-1',
-      attrs: {
-        line: {
-          stroke: '#64748b',
-          strokeWidth: 1.5,
-          targetMarker: null
-        }
-      }
-    });
-
-    graph.addEdge({
-      id: 'edge-2',
-      source: 'phrase-1',
-      target: 'concept-2',
-      attrs: {
-        line: {
-          stroke: '#64748b',
-          strokeWidth: 1.5,
-          targetMarker: {
-            name: 'classic',
-            size: 8
-          }
-        }
-      }
-    });
-
+        data: { type: node.type }
+      });
+    }
+    for (const edge of this.example.edges) {
+      const target = this.example.nodes.find(node => node.id === edge.target);
+      graph.addEdge({
+        ...edge,
+        attrs: { line: { stroke: '#64748b', strokeWidth: 1.5,
+          targetMarker: target?.type === 'linking_phrase' ? null : { name: 'classic', size: 8 } } }
+      });
+    }
     this.engine.fitContent();
-
     graph.cleanHistory();
   }
 
