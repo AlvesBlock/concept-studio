@@ -1,21 +1,29 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
+import { vi, describe, it, expect } from 'vitest';
 import { MapCanvas } from './map-canvas';
+import { GraphEngine } from '../../services/graph-engine';
+
+vi.mock('@antv/x6', () => ({
+  Graph: vi.fn(), History: vi.fn(), Selection: vi.fn(),
+  Keyboard: vi.fn(), Clipboard: vi.fn()
+}));
 
 describe('MapCanvas', () => {
-  let component: MapCanvas;
-  let fixture: ComponentFixture<MapCanvas>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [MapCanvas],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(MapCanvas);
-    component = fixture.componentInstance;
+  it('renders the example through the graph engine and disposes it', async () => {
+    const graph = { addNode: vi.fn(), addEdge: vi.fn(), cleanHistory: vi.fn() };
+    const engine = { initialize: vi.fn(), getGraph: vi.fn(() => graph),
+      fitContent: vi.fn(), destroy: vi.fn() };
+    await TestBed.configureTestingModule({ imports: [MapCanvas] })
+      .overrideComponent(MapCanvas, { set: { providers: [{ provide: GraphEngine, useValue: engine }] } })
+      .compileComponents();
+    const fixture = TestBed.createComponent(MapCanvas);
+    fixture.detectChanges();
     await fixture.whenStable();
-  });
-
-  it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(engine.initialize).toHaveBeenCalledOnce();
+    expect(graph.addNode).toHaveBeenCalledTimes(3);
+    expect(graph.addEdge).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.textContent).toContain('Como os conceitos se relacionam?');
+    fixture.destroy();
+    expect(engine.destroy).toHaveBeenCalledOnce();
   });
 });
