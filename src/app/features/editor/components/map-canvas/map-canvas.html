@@ -1,0 +1,65 @@
+
+<div class="editor-container">
+
+  <header class="editor-header">
+
+    <div class="brand">
+      <span class="brand-icon">CS</span>
+
+      <div>
+        <h1>Concept Studio</h1>
+        <span>Editor de mapas conceituais</span>
+      </div>
+    </div>
+
+    <span class="version">v0.1.0</span>
+
+  </header>
+
+  <div class="editor-toolbar">
+
+    <button mat-button (click)="engine.undo()">
+      Desfazer
+    </button>
+
+    <button mat-button (click)="engine.redo()">
+      Refazer
+    </button>
+
+    <span class="separator"></span>
+
+    <button mat-button (click)="engine.zoomOut()">
+      −
+    </button>
+
+    <button mat-button (click)="engine.zoomIn()">
+      +
+    </button>
+
+    <button mat-button (click)="engine.fitContent()">
+      Ajustar à tela
+    </button>
+
+  </div>
+
+  <div class="focus-question">
+    <span>PERGUNTA FOCAL</span>
+
+    <strong>
+      Como o conhecimento apoia a segurança pública?
+    </strong>
+  </div>
+
+  <div #canvas class="graph-canvas"></div>
+
+  <footer class="editor-footer">
+
+    <span>Motor gráfico: AntV X6</span>
+
+    <span>Ctrl + Scroll para zoom</span>
+
+    <span>Concept Studio</span>
+
+  </footer>
+
+</div>
