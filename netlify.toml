@@ -1,0 +1,19 @@
+[build]
+  command = "npm run build -- --output-mode=static"
+  publish = "dist/concept-studio/browser"
+
+[build.environment]
+  NODE_VERSION = "22.22.3"
+  NPM_VERSION = "10.9.8"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
