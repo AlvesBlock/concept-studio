@@ -10,7 +10,7 @@ vi.mock('@antv/x6', () => ({
 
 describe('MapCanvas', () => {
   it('renders the example through the graph engine and disposes it', async () => {
-    const graph = { addNode: vi.fn(), addEdge: vi.fn(), cleanHistory: vi.fn() };
+    const graph = { addNode: vi.fn(), addEdge: vi.fn(), cleanHistory: vi.fn(), on: vi.fn() };
     const engine = { initialize: vi.fn(), getGraph: vi.fn(() => graph),
       fitContent: vi.fn(), destroy: vi.fn() };
     await TestBed.configureTestingModule({ imports: [MapCanvas] })
@@ -22,7 +22,7 @@ describe('MapCanvas', () => {
     expect(engine.initialize).toHaveBeenCalledOnce();
     expect(graph.addNode).toHaveBeenCalledTimes(3);
     expect(graph.addEdge).toHaveBeenCalledTimes(2);
-    expect(fixture.nativeElement.textContent).toContain('Como os conceitos se relacionam?');
+    expect(fixture.nativeElement.querySelector('input').value).toBe('Como os conceitos se relacionam?');
     fixture.destroy();
     expect(engine.destroy).toHaveBeenCalledOnce();
   });
