@@ -11,6 +11,8 @@ import {
 
 import type { StudioDocument } from '../../../../core/document/studio-document.model';
 import { isConceptDocument } from '../../services/concept-document-validation';
+import { academicExample } from '../../services/academic-example';
+import { PresentationPanel } from '../presentation-panel/presentation-panel';
 import { arrangeNodes } from '../../services/automatic-layout';
 import type { Node } from '@antv/x6';
 import { createConceptMapExample } from '../../../../diagram-types/concept-map/concept-map.plugin';
@@ -21,7 +23,7 @@ import { GraphEngine } from '../../services/graph-engine';
   selector: 'app-map-canvas',
   standalone: true,
   imports: [
-    MatButtonModule
+    MatButtonModule, PresentationPanel
   ],
   providers: [
     GraphEngine
@@ -53,6 +55,15 @@ export class MapCanvas implements OnDestroy {
   readonly selectedType = signal('');
   @ViewChild('inlineInput') set inlineInput(input: ElementRef<HTMLInputElement> | undefined) {
     if (input) queueMicrotask(() => { input.nativeElement.focus(); input.nativeElement.select(); });
+  }
+  readonly presentation = signal<StudioDocument<{focusQuestion:string}> | null>(null);
+  openAcademicExample(): void {
+    if (!window.confirm('Abrir exemplo acadêmico? Salve o mapa atual antes de continuar.')) return;
+    this.loadDocument({...academicExample(),id:crypto.randomUUID()});
+  }
+  openPresentation(): void {
+    this.finishInline(true);
+    this.presentation.set(this.snapshot());
   }
   readonly title = signal('Mapa sem título');
   readonly layoutBusy = signal(false);
@@ -203,8 +214,10 @@ constructor() {
     if (!id) return;
     const cell = this.engine.getGraph().getCellById(id);
     if (!cell?.isNode()) return;
-    this.applyLabel(cell, value);
-    this.selectedText.set(value);
+    const text = value.trim();
+    if (!text) return;
+    this.applyLabel(cell, text);
+    this.selectedText.set(text);
   }
 
   toggleConnection(): void {
@@ -351,7 +364,7 @@ constructor() {
       title: this.title(), metadata: { focusQuestion: this.focusQuestion() },
       nodes: graph.getNodes().map(node => ({
         id: node.id, type: String(node.getData()?.type ?? 'concept'),
-        label: String(node.attr('label/text') ?? ''),
+        label: String(node.attr('label/text') ?? node.getProp('label') ?? ''),
         position: node.position(), size: node.size(),
         style: { fill: String(node.attr('body/fill') ?? 'transparent'),
           stroke: String(node.attr('body/stroke') ?? 'none'),
@@ -390,6 +403,7 @@ constructor() {
   }
 
   exportJson(): void {
+    this.finishInline(true);
     const blob = new Blob([JSON.stringify(this.snapshot(), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
