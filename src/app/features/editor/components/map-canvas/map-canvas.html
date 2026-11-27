@@ -13,7 +13,7 @@
     </div>
 
     <input class="document-title" aria-label="Título do mapa" [value]="title()" (input)="title.set($any($event.target).value)" />
-    <span class="version">v0.5.1-dev</span>
+    <span class="version">v0.6.0-dev</span>
 
   </header>
 
@@ -46,6 +46,13 @@
 
     <button mat-button [disabled]="!ready() || layoutBusy()" (click)="organize('DOWN')">Organizar ↓</button>
     <button mat-button [disabled]="!ready() || layoutBusy()" (click)="organize('RIGHT')">Organizar →</button>
+    <button mat-button [disabled]="!ready()" (click)="saveLocal()">Salvar</button>
+    <select aria-label="Abrir mapa salvo" #saved (change)="openLocal(saved.value); saved.value = ''">
+      <option value="">Abrir mapa salvo</option>
+      @for (map of savedMaps(); track map.id) { <option [value]="map.id">{{map.title}}</option> }
+    </select>
+    <input #importFile type="file" accept=".json,application/json" hidden (change)="importJson($event)" />
+    <button mat-button [disabled]="!ready()" (click)="importFile.click()">Importar JSON</button>
     <button mat-button [disabled]="!ready()" (click)="exportJson()">Exportar JSON</button>
     <button mat-button (click)="engine.fitContent()">
       Ajustar à tela
@@ -62,12 +69,23 @@
   <div class="editor-body">
     <div class="canvas-shell">
       <div #canvas class="graph-canvas"></div>
+      @if (handle(); as h) {
+        @if (!inlineEdit()) {
+          <button class="link-handle" title="Arraste para relacionar" aria-label="Arraste para criar ligação"
+            [style.left.px]="h.x" [style.top.px]="h.y"
+            (pointerdown)="startLink($event)" (pointermove)="moveLink($event)"
+            (pointerup)="endLink($event)" (pointercancel)="cancelLink()" (lostpointercapture)="cancelLink()">↗</button>
+        }
+      }
+      @if (dragLine(); as line) {
+        <svg class="link-preview"><line [attr.x1]="line.x1" [attr.y1]="line.y1" [attr.x2]="line.x2" [attr.y2]="line.y2" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 3"/></svg>
+      }
       @if (inlineEdit()) {
         <input #inlineInput class="inline-editor" aria-label="Editar elemento"
           [style.left.px]="editPosition().x" [style.top.px]="editPosition().y"
           [style.width.px]="editPosition().width" [value]="draftText()"
           (input)="draftText.set($any($event.target).value)"
-          (keydown.enter)="finishInline(true)" (keydown.escape)="finishInline(false)"
+          (keydown.enter)="confirmInline()" (keydown.escape)="finishInline(false)"
           (blur)="finishInline(true)" />
       }
     </div>
