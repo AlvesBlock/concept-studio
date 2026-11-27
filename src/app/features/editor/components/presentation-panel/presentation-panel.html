@@ -1,0 +1,33 @@
+<section class="presentation" role="dialog" aria-label="Apresentação do mapa">
+  <header><div><strong>Apresentação e exportação</strong><small>Seu mapa original permanece intacto.</small></div><button (click)="closed.emit()">Voltar ao editor</button></header>
+  @if(settings(); as s){
+  <div class="workspace">
+    <aside>
+      <label>Título <input [value]="s.title" (input)="patch({title:$any($event.target).value})"></label>
+      <label>Pergunta focal <textarea [value]="s.question" (input)="patch({question:$any($event.target).value})"></textarea></label>
+      <label>Tema <select [value]="s.theme" (change)="patch({theme:$any($event.target).value})"><option value="academic">Acadêmico colorido</option><option value="minimal">Minimalista</option><option value="original">Cores originais</option></select></label>
+      <label><input type="checkbox" [checked]="s.grouped" (change)="patch({grouped:$any($event.target).checked})"> Organizar em painéis temáticos</label>
+      @if(s.grouped){
+        <label>Conceito central <select [value]="s.root" (change)="patch({root:$any($event.target).value})">@for(n of concepts();track n.id){<option [value]="n.id">{{n.label}}</option>}</select></label>
+        <h3>Painéis</h3>
+        @for(g of s.groups;track g.id){
+          <div class="group"><input type="color" aria-label="Cor do painel" [value]="g.color" (input)="updateGroup(g.id,'color',$any($event.target).value)"><input aria-label="Nome do painel" [value]="g.title" (input)="updateGroup(g.id,'title',$any($event.target).value)"><button [disabled]="s.groups.length===1" (click)="removeGroup(g.id)" aria-label="Remover painel">×</button></div>
+        }
+        <button (click)="addGroup()">+ Painel</button>
+      }
+      <h3>Conceitos na apresentação</h3>
+      <small>Desmarque para simplificar a apresentação, sem excluir do mapa.</small>
+      @for(n of concepts();track n.id){
+        <div class="assignment"><label><input type="checkbox" [checked]="!s.hidden.includes(n.id)" (change)="toggleNode(n.id,$any($event.target).checked)"> {{n.label}}</label>
+        @if(s.grouped&&n.id!==s.root){<select [attr.aria-label]="'Painel de '+n.label" [value]="s.assignments[n.id]||s.groups[0].id" (change)="setGroup(n.id,$any($event.target).value)">@for(g of s.groups;track g.id){<option [value]="g.id">{{g.title}}</option>}</select>}</div>
+      }
+      <button (click)="reset()">Restaurar apresentação</button>
+    </aside>
+    <main><div class="actions"><label>Resolução <select [value]="scale()" (change)="scale.set(+$any($event.target).value)"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label>
+      <button [disabled]="busy()" (click)="download('jpeg')">JPEG</button><button [disabled]="busy()" (click)="download('png')">PNG</button><button [disabled]="busy()" (click)="download('svg')">SVG</button><button (click)="print()">Imprimir / PDF</button>
+      <span role="status">{{message()}}</span></div>
+      @if(preview()){<div class="paper"><img [src]="preview()" alt="Prévia integral do mapa conceitual"></div>}
+    </main>
+  </div>
+  }
+</section>

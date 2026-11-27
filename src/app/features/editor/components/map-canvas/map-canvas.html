@@ -13,7 +13,7 @@
     </div>
 
     <input class="document-title" aria-label="Título do mapa" [value]="title()" (input)="title.set($any($event.target).value)" />
-    <span class="version">v0.6.0-dev</span>
+    <span class="version">v0.7.0-dev</span>
 
   </header>
 
@@ -54,6 +54,7 @@
     <input #importFile type="file" accept=".json,application/json" hidden (change)="importJson($event)" />
     <button mat-button [disabled]="!ready()" (click)="importFile.click()">Importar JSON</button>
     <button mat-button [disabled]="!ready()" (click)="exportJson()">Exportar JSON</button>
+    <button mat-flat-button [disabled]="!ready()" (click)="openPresentation()">Apresentação / JPEG</button>
     <button mat-button (click)="engine.fitContent()">
       Ajustar à tela
     </button>
@@ -112,3 +113,7 @@
   </footer>
 
 </div>
+
+@if (presentation(); as doc) {
+  <app-presentation-panel [source]="doc" (closed)="presentation.set(null)" />
+}
