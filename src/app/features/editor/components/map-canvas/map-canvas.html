@@ -12,11 +12,17 @@
       </div>
     </div>
 
-    <span class="version">v0.1.0</span>
+    <span class="version">v0.3.0-dev</span>
 
   </header>
 
   <div class="editor-toolbar">
+    <button mat-button [disabled]="!ready()" (click)="newDocument()">Novo mapa</button>
+    <button mat-button [disabled]="!ready()" (click)="addElement('concept')">+ Conceito</button>
+    <button mat-button [disabled]="!ready()" (click)="addElement('linking_phrase')">+ Expressão</button>
+    <button mat-button [disabled]="!ready()" [attr.aria-pressed]="mode() === 'connect'" (click)="toggleConnection()">Conectar</button>
+    <button mat-button [disabled]="!ready()" (click)="deleteSelection()">Excluir seleção</button>
+    <span class="separator"></span>
 
     <button mat-button (click)="engine.undo()">
       Desfazer
@@ -45,12 +51,19 @@
   <div class="focus-question">
     <span>PERGUNTA FOCAL</span>
 
-    <strong>
-      Como o conhecimento apoia a segurança pública?
-    </strong>
+    <input aria-label="Pergunta focal" placeholder="Digite a pergunta focal" [value]="focusQuestion()" (input)="focusQuestion.set($any($event.target).value)" />
   </div>
 
-  <div #canvas class="graph-canvas"></div>
+  <div class="editor-body">
+    <div #canvas class="graph-canvas"></div>
+    <aside class="properties"><h2>Propriedades</h2>
+      @if (selectedId()) {
+        <label for="node-label">Texto do elemento</label>
+        <textarea id="node-label" [value]="selectedText()" (change)="updateText($any($event.target).value)"></textarea>
+      } @else { <p>Selecione um conceito ou expressão.</p> }
+      <p role="status">{{ message() }}</p>
+    </aside>
+  </div>
 
   <footer class="editor-footer">
 
