@@ -100,7 +100,7 @@ export function renderPresentation(doc:ConceptDocument,settings:PresentationSett
   const questionLines=lines(settings.question,Math.max(20,Math.floor((width-80)/10)));
   const header=headingLines.length*36+questionLines.length*23+64;
   height=graphHeight+header;
-  const background=settings.theme==='minimal'?'#ffffff':'#f8fafc';
+  const background=settings.theme==='academic'?'#f8fafc':'#ffffff';
   const headerMarkup='<rect x="20" y="14" width="'+(width-40)+'" height="'+(headingLines.length*36+18)+'" rx="12" fill="#172554"/>'+text(settings.title||'Mapa conceitual',width/2,23+headingLines.length*18,30,Math.max(20,Math.floor((width-80)/17)),'#ffffff',true)+text(settings.question,width/2,headingLines.length*36+40+questionLines.length*11.5,19,Math.max(20,Math.floor((width-80)/10)),'#172033',false);
   const connectors=edges.map(e=>{
     const a=items.get(e.source),b=items.get(e.target);if(!a||!b)return '';
@@ -113,7 +113,7 @@ export function renderPresentation(doc:ConceptDocument,settings:PresentationSett
     const phrase=q.node.type==='linking_phrase',root=q.node.id===settings.root&&!phrase,original=settings.theme==='original';
     const fill=phrase?(original?safe(q.node.style?.fill,background):background):original?safe(q.node.style?.fill,'#dbeafe'):settings.theme==='minimal'?'#ffffff':root?'#172554':q.group?safe(q.group.color,'#2563eb')+'22':'#dbeafe';
     const stroke=phrase?'none':original?safe(q.node.style?.stroke,'#2563eb'):q.group?safe(q.group.color,'#2563eb'):'#334155';
-    const font=original?(q.node.style?.fontSize??14):phrase?14:18;
+    const font=!settings.grouped?(q.node.style?.fontSize??14):original?(q.node.style?.fontSize??14):phrase?14:18;
     return '<rect x="'+q.x+'" y="'+q.y+'" width="'+q.w+'" height="'+q.h+'" rx="'+(phrase?4:10)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.4"/>'+text(q.node.label,q.x+q.w/2,q.y+q.h/2,font,Math.max(4,Math.floor((q.w-12)/(font*.57))),!original&&root&&settings.theme!=='minimal'?'#ffffff':'#172033',!phrase&&!original);
   }).join('');
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+Math.ceil(width)+'" height="'+Math.ceil(height)+'" viewBox="0 0 '+width+' '+height+'"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#475569"/></marker></defs><rect width="100%" height="100%" fill="'+background+'"/>'+headerMarkup+'<g transform="translate('+(-minX)+' '+(header-minY)+')">'+panels.join('')+connectors+boxes+'</g></svg>';

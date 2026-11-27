@@ -11,6 +11,7 @@ import {
 
 import type { StudioDocument } from '../../../../core/document/studio-document.model';
 import { isConceptDocument } from '../../services/concept-document-validation';
+import { academicExample } from '../../services/academic-example';
 import { PresentationPanel } from '../presentation-panel/presentation-panel';
 import { arrangeNodes } from '../../services/automatic-layout';
 import type { Node } from '@antv/x6';
@@ -56,6 +57,10 @@ export class MapCanvas implements OnDestroy {
     if (input) queueMicrotask(() => { input.nativeElement.focus(); input.nativeElement.select(); });
   }
   readonly presentation = signal<StudioDocument<{focusQuestion:string}> | null>(null);
+  openAcademicExample(): void {
+    if (!window.confirm('Abrir exemplo acadêmico? Salve o mapa atual antes de continuar.')) return;
+    this.loadDocument({...academicExample(),id:crypto.randomUUID()});
+  }
   openPresentation(): void {
     this.finishInline(true);
     this.presentation.set(this.snapshot());

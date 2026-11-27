@@ -13,7 +13,7 @@
         @for(g of s.groups;track g.id){
           <div class="group"><input type="color" aria-label="Cor do painel" [value]="g.color" (input)="updateGroup(g.id,'color',$any($event.target).value)"><input aria-label="Nome do painel" [value]="g.title" (input)="updateGroup(g.id,'title',$any($event.target).value)"><button [disabled]="s.groups.length===1" (click)="removeGroup(g.id)" aria-label="Remover painel">×</button></div>
         }
-        <button (click)="addGroup()">+ Painel</button>
+        <button [disabled]="s.groups.length>=24" (click)="addGroup()">+ Painel</button>
       }
       <h3>Conceitos na apresentação</h3>
       <small>Desmarque para simplificar a apresentação, sem excluir do mapa.</small>
@@ -21,7 +21,7 @@
         <div class="assignment"><label><input type="checkbox" [checked]="!s.hidden.includes(n.id)" (change)="toggleNode(n.id,$any($event.target).checked)"> {{n.label}}</label>
         @if(s.grouped&&n.id!==s.root){<select [attr.aria-label]="'Painel de '+n.label" [value]="s.assignments[n.id]||s.groups[0].id" (change)="setGroup(n.id,$any($event.target).value)">@for(g of s.groups;track g.id){<option [value]="g.id">{{g.title}}</option>}</select>}</div>
       }
-      <button (click)="reset()">Restaurar apresentação</button>
+      <button (click)="saveSettings()">Salvar configuração visual</button> <button (click)="reset()">Restaurar apresentação</button>
     </aside>
     <main><div class="actions"><label>Resolução <select [value]="scale()" (change)="scale.set(+$any($event.target).value)"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label>
       <button [disabled]="busy()" (click)="download('jpeg')">JPEG</button><button [disabled]="busy()" (click)="download('png')">PNG</button><button [disabled]="busy()" (click)="download('svg')">SVG</button><button (click)="print()">Imprimir / PDF</button>

@@ -19,6 +19,7 @@
 
   <div class="editor-toolbar">
     <button mat-button [disabled]="!ready()" (click)="newDocument()">Novo mapa</button>
+    <button mat-button [disabled]="!ready()" (click)="openAcademicExample()">Exemplo acadêmico</button>
     <button mat-button [disabled]="!ready()" (click)="addElement('concept')">+ Conceito</button>
     <button mat-button [disabled]="!ready()" (click)="addElement('linking_phrase')">+ Expressão</button>
     <button mat-button [disabled]="!ready()" [attr.aria-pressed]="mode() === 'connect'" (click)="toggleConnection()">Conectar</button>
