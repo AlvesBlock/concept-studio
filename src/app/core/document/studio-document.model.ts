@@ -4,6 +4,7 @@ export interface StudioNode {
   label: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
+  style?: { fill: string; stroke: string; fontSize: number };
 }
 export interface StudioEdge {
   id: string;

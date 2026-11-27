@@ -22,7 +22,7 @@ describe('MapCanvas', () => {
     expect(engine.initialize).toHaveBeenCalledOnce();
     expect(graph.addNode).toHaveBeenCalledTimes(3);
     expect(graph.addEdge).toHaveBeenCalledTimes(2);
-    expect(fixture.nativeElement.querySelector('input').value).toBe('Como os conceitos se relacionam?');
+    expect(fixture.nativeElement.querySelector('input[aria-label="Pergunta focal"]').value).toBe('Como os conceitos se relacionam?');
     fixture.destroy();
     expect(engine.destroy).toHaveBeenCalledOnce();
   });

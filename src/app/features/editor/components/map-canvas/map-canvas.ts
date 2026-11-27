@@ -9,6 +9,8 @@ import {
   afterNextRender
 } from '@angular/core';
 
+import type { StudioDocument } from '../../../../core/document/studio-document.model';
+import { arrangeNodes } from '../../services/automatic-layout';
 import type { Node } from '@antv/x6';
 import { createConceptMapExample } from '../../../../diagram-types/concept-map/concept-map.plugin';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,6 +43,15 @@ export class MapCanvas implements OnDestroy {
   readonly selectedText = signal('');
   private connectionSource: string | null = null;
   private nextId = 0;
+  readonly title = signal('Mapa sem título');
+  readonly layoutBusy = signal(false);
+  readonly fill = signal('#dbeafe');
+  readonly stroke = signal('#2563eb');
+  readonly fontSize = signal(14);
+  readonly inlineEdit = signal(false);
+  readonly draftText = signal('');
+  readonly editPosition = signal({ x: 0, y: 0, width: 180 });
+  private documentId = 'example';
 
 constructor() {
   afterNextRender(() => {
@@ -97,8 +108,14 @@ constructor() {
     graph.on('node:dblclick', ({ node }) => {
       if (this.mode() !== 'select') return;
       this.selectNode(node);
-      const value = window.prompt('Editar texto', this.selectedText());
-      if (value !== null) this.updateText(value);
+      const box = node.getBBox();
+      const point = graph.localToClient(box.x, box.y);
+      const host = this.canvas.nativeElement.getBoundingClientRect();
+      const end = graph.localToClient(box.x + box.width, box.y);
+      this.editPosition.set({ x: point.x - host.left, y: point.y - host.top,
+        width: Math.max(120, end.x - point.x) });
+      this.draftText.set(this.selectedText());
+      this.inlineEdit.set(true);
     });
     graph.on('blank:click', () => {
       this.selectedId.set(null);
@@ -115,6 +132,9 @@ constructor() {
   private selectNode(node: Node): void {
     this.selectedId.set(node.id);
     this.selectedText.set(String(node.attr('label/text') ?? ''));
+    this.fill.set(this.readColor(node.attr('body/fill'), '#ffffff'));
+    this.stroke.set(this.readColor(node.attr('body/stroke'), '#2563eb'));
+    this.fontSize.set(Number(node.attr('label/fontSize')) || 14);
   }
 
   addElement(type: 'concept' | 'linking_phrase', x?: number, y?: number): void {
@@ -193,6 +213,9 @@ constructor() {
     graph.clearCells();
     graph.cleanHistory();
     this.focusQuestion.set('');
+    this.title.set('Mapa sem título');
+    this.documentId = crypto.randomUUID();
+    this.inlineEdit.set(false);
     this.selectedId.set(null);
     this.selectedText.set('');
     this.connectionSource = null;
@@ -200,7 +223,89 @@ constructor() {
     this.message.set('Duplo clique no canvas para criar um conceito.');
   }
 
+  private readColor(value: unknown, fallback: string): string {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+  }
+
+  finishInline(commit: boolean): void {
+    if (!this.inlineEdit()) return;
+    this.inlineEdit.set(false);
+    if (commit) this.updateText(this.draftText());
+  }
+
+  setStyle(path: 'body/fill' | 'body/stroke' | 'label/fontSize', value: string | number): void {
+    const id = this.selectedId();
+    const cell = id ? this.engine.getGraph().getCellById(id) : null;
+    if (!cell?.isNode()) return;
+    if (path === 'label/fontSize') {
+      const size = Number(value);
+      if (!Number.isFinite(size) || size < 8 || size > 48) return;
+      cell.attr(path, size);
+      this.fontSize.set(size);
+    } else {
+      if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) return;
+      cell.attr(path, value);
+      if (path === 'body/fill') this.fill.set(value); else this.stroke.set(value);
+    }
+  }
+
+  snapshot(): StudioDocument<{ focusQuestion: string }> {
+    const graph = this.engine.getGraph();
+    return {
+      schemaVersion: 1, id: this.documentId, type: 'concept-map',
+      title: this.title(), metadata: { focusQuestion: this.focusQuestion() },
+      nodes: graph.getNodes().map(node => ({
+        id: node.id, type: String(node.getData()?.type ?? 'concept'),
+        label: String(node.attr('label/text') ?? ''),
+        position: node.position(), size: node.size(),
+        style: { fill: String(node.attr('body/fill') ?? 'transparent'),
+          stroke: String(node.attr('body/stroke') ?? 'none'),
+          fontSize: Number(node.attr('label/fontSize')) || 14 }
+      })),
+      edges: graph.getEdges().map(edge => ({
+        id: edge.id, source: edge.getSourceCellId() ?? '', target: edge.getTargetCellId() ?? ''
+      }))
+    };
+  }
+
+  async organize(direction: 'DOWN' | 'RIGHT'): Promise<void> {
+    if (this.layoutBusy()) return;
+    this.layoutBusy.set(true);
+    try {
+      const graph = this.engine.getGraph();
+      const before = this.snapshot();
+      const positions = await arrangeNodes(before, direction);
+      if (!this.ready() || JSON.stringify(this.snapshot()) !== JSON.stringify(before)) {
+        this.message.set('O mapa mudou durante a organização. Tente novamente.');
+        return;
+      }
+      graph.batchUpdate('automatic-layout', () => {
+        for (const [id, position] of Object.entries(positions)) {
+          const cell = graph.getCellById(id);
+          if (cell?.isNode()) cell.position(position.x, position.y);
+        }
+      });
+      this.engine.fitContent();
+      this.message.set('Organização aplicada.');
+    } catch {
+      this.message.set('Não foi possível organizar o mapa.');
+    } finally {
+      this.layoutBusy.set(false);
+    }
+  }
+
+  exportJson(): void {
+    const blob = new Blob([JSON.stringify(this.snapshot(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'concept-studio.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   ngOnDestroy(): void {
+    this.ready.set(false);
     this.engine.destroy();
   }
 }

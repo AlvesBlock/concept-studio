@@ -12,7 +12,8 @@
       </div>
     </div>
 
-    <span class="version">v0.3.0-dev</span>
+    <input class="document-title" aria-label="Título do mapa" [value]="title()" (input)="title.set($any($event.target).value)" />
+    <span class="version">v0.5.0-dev</span>
 
   </header>
 
@@ -42,6 +43,9 @@
       +
     </button>
 
+    <button mat-button [disabled]="!ready() || layoutBusy()" (click)="organize('DOWN')">Organizar ↓</button>
+    <button mat-button [disabled]="!ready() || layoutBusy()" (click)="organize('RIGHT')">Organizar →</button>
+    <button mat-button [disabled]="!ready()" (click)="exportJson()">Exportar JSON</button>
     <button mat-button (click)="engine.fitContent()">
       Ajustar à tela
     </button>
@@ -55,11 +59,24 @@
   </div>
 
   <div class="editor-body">
-    <div #canvas class="graph-canvas"></div>
+    <div class="canvas-shell">
+      <div #canvas class="graph-canvas"></div>
+      @if (inlineEdit()) {
+        <input class="inline-editor" aria-label="Editar elemento"
+          [style.left.px]="editPosition().x" [style.top.px]="editPosition().y"
+          [style.width.px]="editPosition().width" [value]="draftText()"
+          (input)="draftText.set($any($event.target).value)"
+          (keydown.enter)="finishInline(true)" (keydown.escape)="finishInline(false)"
+          (blur)="finishInline(true)" />
+      }
+    </div>
     <aside class="properties"><h2>Propriedades</h2>
       @if (selectedId()) {
         <label for="node-label">Texto do elemento</label>
         <textarea id="node-label" [value]="selectedText()" (change)="updateText($any($event.target).value)"></textarea>
+        <label>Preenchimento <input type="color" [value]="fill()" (change)="setStyle('body/fill', $any($event.target).value)" /></label>
+        <label>Borda <input type="color" [value]="stroke()" (change)="setStyle('body/stroke', $any($event.target).value)" /></label>
+        <label>Tamanho da fonte <input type="number" min="8" max="48" [value]="fontSize()" (change)="setStyle('label/fontSize', $any($event.target).value)" /></label>
       } @else { <p>Selecione um conceito ou expressão.</p> }
       <p role="status">{{ message() }}</p>
     </aside>
