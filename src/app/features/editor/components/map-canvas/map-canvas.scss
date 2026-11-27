@@ -127,3 +127,5 @@
 .document-title { background: #ffffff15; color: white; border: 1px solid #64748b; border-radius: 5px; padding: 8px; max-width: 35%; }
 .properties label { display: block; margin: 12px 0; }
 .properties input { display: block; margin-top: 4px; max-width: 100%; }
+
+.properties { overflow-y: auto; }

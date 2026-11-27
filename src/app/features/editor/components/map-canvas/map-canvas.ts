@@ -43,6 +43,11 @@ export class MapCanvas implements OnDestroy {
   readonly selectedText = signal('');
   private connectionSource: string | null = null;
   private nextId = 0;
+  private editingId: string | null = null;
+  readonly selectedType = signal('');
+  @ViewChild('inlineInput') set inlineInput(input: ElementRef<HTMLInputElement> | undefined) {
+    if (input) queueMicrotask(() => { input.nativeElement.focus(); input.nativeElement.select(); });
+  }
   readonly title = signal('Mapa sem título');
   readonly layoutBusy = signal(false);
   readonly fill = signal('#dbeafe');
@@ -96,6 +101,13 @@ constructor() {
   private registerInteractions(): void {
     const graph = this.engine.getGraph();
     graph.on('blank:dblclick', ({ x, y }) => {
+      if (this.mode() === 'connect' && this.connectionSource) {
+        const source = graph.getCellById(this.connectionSource);
+        if (source?.isNode() && source.getData()?.type === 'concept') {
+          this.createProposition(source, undefined, x, y);
+          return;
+        }
+      }
       if (this.mode() === 'select') this.addElement('concept', x, y);
     });
     graph.on('node:click', ({ node }) => {
@@ -108,6 +120,28 @@ constructor() {
     graph.on('node:dblclick', ({ node }) => {
       if (this.mode() !== 'select') return;
       this.selectNode(node);
+      this.beginEdit(node);
+    });
+    graph.on('blank:click', () => {
+      if (this.mode() === 'connect') return;
+      this.selectedId.set(null);
+      this.selectedText.set('');
+      this.selectedType.set('');
+    });
+    graph.on('cell:removed', ({ cell }) => {
+      if (this.selectedId() === cell.id) {
+        this.selectedId.set(null);
+        this.selectedText.set('');
+        this.selectedType.set('');
+      }
+      if (this.connectionSource === cell.id) this.toggleConnection();
+    });
+  }
+
+  private beginEdit(node: Node): void {
+      const graph = this.engine.getGraph();
+      this.selectNode(node);
+      this.editingId = node.id;
       const box = node.getBBox();
       const point = graph.localToClient(box.x, box.y);
       const host = this.canvas.nativeElement.getBoundingClientRect();
@@ -116,28 +150,18 @@ constructor() {
         width: Math.max(120, end.x - point.x) });
       this.draftText.set(this.selectedText());
       this.inlineEdit.set(true);
-    });
-    graph.on('blank:click', () => {
-      this.selectedId.set(null);
-      this.selectedText.set('');
-    });
-    graph.on('cell:removed', ({ cell }) => {
-      if (this.selectedId() === cell.id) {
-        this.selectedId.set(null);
-        this.selectedText.set('');
-      }
-    });
   }
 
   private selectNode(node: Node): void {
     this.selectedId.set(node.id);
-    this.selectedText.set(String(node.attr('label/text') ?? ''));
+    this.selectedType.set(String(node.getData()?.type ?? ''));
+    this.selectedText.set(String(node.attr('label/text') ?? node.getProp('label') ?? ''));
     this.fill.set(this.readColor(node.attr('body/fill'), '#ffffff'));
     this.stroke.set(this.readColor(node.attr('body/stroke'), '#2563eb'));
     this.fontSize.set(Number(node.attr('label/fontSize')) || 14);
   }
 
-  addElement(type: 'concept' | 'linking_phrase', x?: number, y?: number): void {
+  addElement(type: 'concept' | 'linking_phrase', x?: number, y?: number, edit = true): Node {
     const graph = this.engine.getGraph();
     const phrase = type === 'linking_phrase';
     const width = phrase ? 140 : 180;
@@ -157,6 +181,8 @@ constructor() {
       data: { type }
     });
     this.selectNode(node);
+    if (edit) this.beginEdit(node);
+    return node;
   }
 
   updateText(value: string): void {
@@ -178,10 +204,15 @@ constructor() {
     const graph = this.engine.getGraph();
     if (!this.connectionSource) {
       this.connectionSource = node.id;
-      this.message.set('Selecione o destino da conexão.');
+      this.selectNode(node);
+      this.message.set('Clique no conceito de destino ou dê duplo clique no espaço vazio para criar uma proposição.');
       return;
     }
     const source = graph.getCellById(this.connectionSource);
+    if (source?.isNode() && source.id !== node.id && source.getData()?.type === 'concept' && node.getData()?.type === 'concept') {
+      this.createProposition(source, node);
+      return;
+    }
     if (!source?.isNode() || source.id === node.id || source.getData()?.type === node.getData()?.type) {
       this.message.set('Conecte um conceito a uma expressão de ligação, ou vice-versa.');
       return;
@@ -195,6 +226,34 @@ constructor() {
         targetMarker: node.getData()?.type === 'linking_phrase' ? null : { name: 'classic', size: 8 } } }
     });
     this.toggleConnection();
+  }
+
+  expandConcept(): void {
+    const id = this.selectedId();
+    const source = id ? this.engine.getGraph().getCellById(id) : null;
+    if (!source?.isNode() || source.getData()?.type !== 'concept') return;
+    const box = source.getBBox();
+    this.createProposition(source, undefined, box.x + box.width / 2, box.y + box.height + 150);
+  }
+
+  private createProposition(source: Node, target?: Node, x?: number, y?: number): void {
+    const graph = this.engine.getGraph();
+    const a = source.getBBox();
+    const tx = x ?? (target ? (target.getBBox().x + target.getBBox().width / 2) : (a.x + a.width / 2));
+    const ty = y ?? (target ? (target.getBBox().y + target.getBBox().height / 2) : a.y + a.height + 150);
+    let phrase!: Node;
+    graph.batchUpdate('create-proposition', () => {
+      const destination = target ?? this.addElement('concept', tx, ty, false);
+      phrase = this.addElement('linking_phrase', ((a.x + a.width / 2) + tx) / 2, ((a.y + a.height / 2) + ty) / 2, false);
+      graph.addEdge({ source: source.id, target: phrase.id,
+        attrs: { line: { stroke: '#64748b', targetMarker: null } } });
+      graph.addEdge({ source: phrase.id, target: destination.id,
+        attrs: { line: { stroke: '#64748b', targetMarker: { name: 'classic', size: 8 } } } });
+    });
+    this.connectionSource = null;
+    this.mode.set('select');
+    this.message.set('Digite a expressão de ligação; depois edite o conceito de destino.');
+    this.beginEdit(phrase);
   }
 
   deleteSelection(): void {
@@ -230,7 +289,13 @@ constructor() {
   finishInline(commit: boolean): void {
     if (!this.inlineEdit()) return;
     this.inlineEdit.set(false);
-    if (commit) this.updateText(this.draftText());
+    const id = this.editingId;
+    this.editingId = null;
+    const cell = id ? this.engine.getGraph().getCellById(id) : null;
+    if (commit && cell?.isNode()) {
+      cell.attr('label/text', this.draftText().trim() || this.selectedText());
+      if (this.selectedId() === id) this.selectNode(cell);
+    }
   }
 
   setStyle(path: 'body/fill' | 'body/stroke' | 'label/fontSize', value: string | number): void {

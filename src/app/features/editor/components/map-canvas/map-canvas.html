@@ -13,7 +13,7 @@
     </div>
 
     <input class="document-title" aria-label="Título do mapa" [value]="title()" (input)="title.set($any($event.target).value)" />
-    <span class="version">v0.5.0-dev</span>
+    <span class="version">v0.5.1-dev</span>
 
   </header>
 
@@ -22,6 +22,7 @@
     <button mat-button [disabled]="!ready()" (click)="addElement('concept')">+ Conceito</button>
     <button mat-button [disabled]="!ready()" (click)="addElement('linking_phrase')">+ Expressão</button>
     <button mat-button [disabled]="!ready()" [attr.aria-pressed]="mode() === 'connect'" (click)="toggleConnection()">Conectar</button>
+    <button mat-button [disabled]="!ready() || !selectedId() || selectedType() !== 'concept'" (click)="expandConcept()">+ Proposição</button>
     <button mat-button [disabled]="!ready()" (click)="deleteSelection()">Excluir seleção</button>
     <span class="separator"></span>
 
@@ -62,7 +63,7 @@
     <div class="canvas-shell">
       <div #canvas class="graph-canvas"></div>
       @if (inlineEdit()) {
-        <input class="inline-editor" aria-label="Editar elemento"
+        <input #inlineInput class="inline-editor" aria-label="Editar elemento"
           [style.left.px]="editPosition().x" [style.top.px]="editPosition().y"
           [style.width.px]="editPosition().width" [value]="draftText()"
           (input)="draftText.set($any($event.target).value)"
@@ -78,7 +79,7 @@
         <label>Borda <input type="color" [value]="stroke()" (change)="setStyle('body/stroke', $any($event.target).value)" /></label>
         <label>Tamanho da fonte <input type="number" min="8" max="48" [value]="fontSize()" (change)="setStyle('label/fontSize', $any($event.target).value)" /></label>
       } @else { <p>Selecione um conceito ou expressão.</p> }
-      <p role="status">{{ message() }}</p>
+      <p role="status">{{ message() }}</p><small>Selecione um conceito e use + Proposição, ou Conectar para relacionar dois conceitos existentes.</small>
     </aside>
   </div>
 
