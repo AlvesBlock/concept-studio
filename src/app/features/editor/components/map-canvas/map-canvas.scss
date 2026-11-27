@@ -129,3 +129,11 @@
 .properties input { display: block; margin-top: 4px; max-width: 100%; }
 
 .properties { overflow-y: auto; }
+
+.editor-header { padding: 7px 16px; }
+.editor-toolbar { gap: 2px; padding: 3px 8px; }
+.editor-toolbar button { padding: 0 8px; font-size: 13px; min-height: 32px; }
+.focus-question { flex-direction: row; justify-content: center; padding: 6px 12px; }
+.link-handle { position:absolute; transform:translate(-50%,-50%); z-index:12; width:24px; height:24px; border:2px solid white; border-radius:50%; background:#2563eb; color:white; cursor:crosshair; touch-action:none; }
+.link-preview { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:11; }
+.editor-toolbar select { max-width:180px; padding:5px; }

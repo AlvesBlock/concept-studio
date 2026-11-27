@@ -89,7 +89,7 @@ export class GraphEngine {
 
   fitContent(): void {
     this.getGraph().zoomToFit({
-      padding: 50,
+      padding: 18,
       maxScale: 1
     });
   }

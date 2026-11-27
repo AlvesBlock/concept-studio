@@ -2,14 +2,15 @@
   "name": "concept-studio",
   "version": "0.0.0",
   "scripts": {
-  "ng": "ng",
-  "start": "ng serve",
-  "build": "ng build",
-  "build:static": "ng build --configuration static",
-  "watch": "ng build --watch --configuration development",
-  "test": "ng test",
-  "serve:ssr:concept-studio": "node dist/concept-studio/server/server.mjs"
-},
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "build:static": "ng build --configuration static",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "serve:ssr:concept-studio": "node dist/concept-studio/server/server.mjs",
+    "test:ci": "ng test --watch=false"
+  },
   "private": true,
   "packageManager": "npm@10.9.8",
   "dependencies": {
